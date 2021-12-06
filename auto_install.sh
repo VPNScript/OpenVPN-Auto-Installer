@@ -66,49 +66,65 @@ function checkOS() {
 		if [[ $ID == "centos" || $ID == "rocky" || $ID == "almalinux" ]]; then
 			OS="centos"
 			if [[ ! $VERSION_ID =~ (7|8) ]]; then
-				echo "⚠️ Your version of CentOS is not supported."
-				echo ""
-				echo "The script only support CentOS 7 and CentOS 8."
-				echo ""
+				FailedMessage="The auto installer script only support CentOS 7 and CentOS 8."
+				notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&failed=$FailedMessage" \
+    "$NOTIFY_SERVICE" | jq '.status')
 				exit 1
 			fi
 		fi
 		if [[ $ID == "ol" ]]; then
 			OS="oracle"
 			if [[ ! $VERSION_ID =~ (8) ]]; then
-				echo "Your version of Oracle Linux is not supported."
-				echo ""
-				echo "The script only support Oracle Linux 8."
+					FailedMessage="The auto installer script only support Oracle Linux 8."
+				notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&failed=$FailedMessage" \
+    "$NOTIFY_SERVICE" | jq '.status')
 				exit 1
 			fi
 		fi
 		if [[ $ID == "amzn" ]]; then
 			OS="amzn"
 			if [[ $VERSION_ID != "2" ]]; then
-				echo "⚠️ Your version of Amazon Linux is not supported."
-				echo ""
-				echo "The script only support Amazon Linux 2."
-				echo ""
+				FailedMessage="The auto installer script only support Amazon Linux 2."
+				notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&failed=$FailedMessage" \
+    "$NOTIFY_SERVICE" | jq '.status')
 				exit 1
 			fi
 		fi
 	elif [[ -e /etc/arch-release ]]; then
 		OS=arch
 	else
-		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, Amazon Linux 2, Oracle Linux 8 or Arch Linux system"
+		FailedMessage="Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, Amazon Linux 2, Oracle Linux 8 or Arch Linux system"
+		notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&failed=$FailedMessage" \
+    "$NOTIFY_SERVICE" | jq '.status')
 		exit 1
 	fi
+	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&progress=15" \
+    "$NOTIFY_SERVICE" | jq '.status')
 }
 
 function initialCheck() {
 	if ! isRoot; then
-		echo "Sorry, you need to run this as root"
+		FailedMessage="Sorry, you need to run this as root"
+		notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&failed=$FailedMessage" \
+    "$NOTIFY_SERVICE" | jq '.status')
 		exit 1
 	fi
 	if ! tunAvailable; then
-		echo "TUN is not available"
+		FailedMessage="TUN is not available"
+		notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&failed=$FailedMessage" \
+    "$NOTIFY_SERVICE" | jq '.status')
 		exit 1
 	fi
+	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&progress=10" \
+    "$NOTIFY_SERVICE" | jq '.status')
 	checkOS
 }
 
@@ -222,6 +238,9 @@ access-control: fd42:42:42:42::/112 allow' >>/etc/unbound/openvpn.conf
 
 	systemctl enable unbound
 	systemctl restart unbound
+	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&progress=20" \
+    "$NOTIFY_SERVICE" | jq '.status')
 }
 
 function installQuestions() {
@@ -664,6 +683,10 @@ function installOpenVPN() {
 		fi
 	fi
 
+	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&progress=30" \
+    "$NOTIFY_SERVICE" | jq '.status')
+
 	# If OpenVPN isn't installed yet, install it. This script is more-or-less
 	# idempotent on multiple runs, but will only install OpenVPN from upstream
 	# the first time.
@@ -769,6 +792,10 @@ function installOpenVPN() {
 	if [[ $DH_TYPE == "2" ]]; then
 		cp dh.pem /etc/openvpn
 	fi
+
+	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&progress=40" \
+    "$NOTIFY_SERVICE" | jq '.status')
 
 	# Make cert revocation list readable for non-root
 	chmod 644 /etc/openvpn/crl.pem
@@ -884,6 +911,10 @@ push "redirect-gateway ipv6"' >>/etc/openvpn/server.conf
 		echo "dh dh.pem" >>/etc/openvpn/server.conf
 	fi
 
+	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&progress=50" \
+    "$NOTIFY_SERVICE" | jq '.status')
+
 	echo "ca ca.crt
 cert $SERVER_NAME.crt
 key $SERVER_NAME.key
@@ -922,6 +953,10 @@ verb 3" >>/etc/openvpn/server.conf
 			fi
 		fi
 	fi
+
+	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&progress=60" \
+    "$NOTIFY_SERVICE" | jq '.status')
 
 	# Finally, restart and enable OpenVPN
 	if [[ $OS == 'arch' || $OS == 'fedora' || $OS == 'centos' || $OS == 'oracle' ]]; then
@@ -962,6 +997,10 @@ verb 3" >>/etc/openvpn/server.conf
 	if [[ $DNS == 2 ]]; then
 		installUnbound
 	fi
+
+	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&progress=70" \
+    "$NOTIFY_SERVICE" | jq '.status')
 
 	# Add iptables rules in two scripts
 	mkdir -p /etc/iptables
@@ -1021,6 +1060,10 @@ WantedBy=multi-user.target" >/etc/systemd/system/iptables-openvpn.service
 	systemctl enable iptables-openvpn
 	systemctl start iptables-openvpn
 
+	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "api=$API&host=$HOST&progress=100" \
+    "$NOTIFY_SERVICE" | jq '.status')
+
 	# If the server is behind a NAT, use the correct IP address for the clients to connect to
 	if [[ $ENDPOINT != "" ]]; then
 		IP=$ENDPOINT
@@ -1029,7 +1072,7 @@ WantedBy=multi-user.target" >/etc/systemd/system/iptables-openvpn.service
 	echo "If you want to add more clients, you simply need to run this script another time!"
 
     notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
-    --data "api=$API&host=$HOST" \
+    --data "api=$API&host=$HOST&completed=1" \
     "$NOTIFY_SERVICE" | jq '.status')
 }
 
