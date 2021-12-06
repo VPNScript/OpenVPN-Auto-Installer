@@ -1212,12 +1212,6 @@ function manageMenu() {
 # Check for root, TUN, OS...
 initialCheck
 
-FailedMessage="Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, Amazon Linux 2, Oracle Linux 8 or Arch Linux system"
-		notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
-    --data "api=$API&host=$HOST&failed=$FailedMessage" \
-    "$NOTIFY_SERVICE" | jq '.status')
-		exit 1
-
 # Check if OpenVPN is already installed
 if [[ -e /etc/openvpn/server.conf && $AUTO_INSTALL != "y" ]]; then
 	manageMenu
