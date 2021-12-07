@@ -69,7 +69,7 @@ function checkOS() {
 				FailedMessage="The auto installer script only support CentOS 7 and CentOS 8."
 				notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&failed=$FailedMessage" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 				exit 1
 			fi
 		fi
@@ -79,7 +79,7 @@ function checkOS() {
 					FailedMessage="The auto installer script only support Oracle Linux 8."
 				notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&failed=$FailedMessage" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 				exit 1
 			fi
 		fi
@@ -89,7 +89,7 @@ function checkOS() {
 				FailedMessage="The auto installer script only support Amazon Linux 2."
 				notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&failed=$FailedMessage" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 				exit 1
 			fi
 		fi
@@ -99,12 +99,12 @@ function checkOS() {
 		FailedMessage="Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, Amazon Linux 2, Oracle Linux 8 or Arch Linux system"
 		notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&failed=$FailedMessage" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 		exit 1
 	fi
 	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&progress=15" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 }
 
 function initialCheck() {
@@ -112,19 +112,19 @@ function initialCheck() {
 		FailedMessage="Sorry, you need to run this as root"
 		notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&failed=$FailedMessage" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 		exit 1
 	fi
 	if ! tunAvailable; then
 		FailedMessage="TUN is not available"
 		notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&failed=$FailedMessage" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 		exit 1
 	fi
 	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&progress=10" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 	checkOS
 }
 
@@ -240,7 +240,7 @@ access-control: fd42:42:42:42::/112 allow' >>/etc/unbound/openvpn.conf
 	systemctl restart unbound
 	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&progress=20" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 }
 
 function installQuestions() {
@@ -685,7 +685,7 @@ function installOpenVPN() {
 
 	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&progress=30" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 
 	# If OpenVPN isn't installed yet, install it. This script is more-or-less
 	# idempotent on multiple runs, but will only install OpenVPN from upstream
@@ -795,7 +795,7 @@ function installOpenVPN() {
 
 	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&progress=40" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 
 	# Make cert revocation list readable for non-root
 	chmod 644 /etc/openvpn/crl.pem
@@ -913,7 +913,7 @@ push "redirect-gateway ipv6"' >>/etc/openvpn/server.conf
 
 	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&progress=50" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 
 	echo "ca ca.crt
 cert $SERVER_NAME.crt
@@ -956,7 +956,7 @@ verb 3" >>/etc/openvpn/server.conf
 
 	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&progress=60" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 
 	# Finally, restart and enable OpenVPN
 	if [[ $OS == 'arch' || $OS == 'fedora' || $OS == 'centos' || $OS == 'oracle' ]]; then
@@ -1000,7 +1000,7 @@ verb 3" >>/etc/openvpn/server.conf
 
 	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&progress=70" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 
 	# Add iptables rules in two scripts
 	mkdir -p /etc/iptables
@@ -1062,7 +1062,7 @@ WantedBy=multi-user.target" >/etc/systemd/system/iptables-openvpn.service
 
 	notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&progress=100" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 
 	# If the server is behind a NAT, use the correct IP address for the clients to connect to
 	if [[ $ENDPOINT != "" ]]; then
@@ -1073,7 +1073,7 @@ WantedBy=multi-user.target" >/etc/systemd/system/iptables-openvpn.service
 
     notify=$(curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     --data "api=$API&host=$HOST&completed=1" \
-    "$NOTIFY_SERVICE")
+    "$NOTIFY_SERVICE" | jq '.status')
 }
 
 function removeUnbound() {
